@@ -1,0 +1,2 @@
+fun make() { var c = 0; fun inc() { c = c + 1; return c; } return inc; }
+var i = make(); print i(); print i();

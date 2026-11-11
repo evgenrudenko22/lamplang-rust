@@ -1,0 +1,3 @@
+function add arity=2
+  params: a, b
+  body_tokens: 4

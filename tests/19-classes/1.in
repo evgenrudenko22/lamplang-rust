@@ -1,0 +1,3 @@
+class Dog { init(name) { this.name = name; } bark() { print this.name + " barks!"; } }
+var d = Dog("Rex");
+d.bark();

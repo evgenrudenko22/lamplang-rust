@@ -1,0 +1,2 @@
+declare fun pair<A,B>(a: A, b: B) : pair<A,B>
+call pair(1, "hi")

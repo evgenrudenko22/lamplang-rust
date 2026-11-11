@@ -1,0 +1,162 @@
+{
+  "course": "build-programming-language",
+  "language": "rust",
+  "language_id": 1073,
+  "entrypoint": "main.rs",
+  "version": 1,
+  "content_hash": "79e62ab84362c7a5",
+  "lessons": [
+    {
+      "slug": "scanner",
+      "tests_hash": "5c1f8c33d38f"
+    },
+    {
+      "slug": "token-types",
+      "tests_hash": "fdc86d8f31c5"
+    },
+    {
+      "slug": "string-number-literals",
+      "tests_hash": "d37061851081"
+    },
+    {
+      "slug": "recursive-descent",
+      "tests_hash": "58444a7a089d"
+    },
+    {
+      "slug": "binary-unary",
+      "tests_hash": "d4b2d8c7b2aa"
+    },
+    {
+      "slug": "precedence-grouping",
+      "tests_hash": "7fe28745638b"
+    },
+    {
+      "slug": "ast",
+      "tests_hash": "2b5232c29f61"
+    },
+    {
+      "slug": "print-expr-stmt",
+      "tests_hash": "1d6838058ecb"
+    },
+    {
+      "slug": "variables",
+      "tests_hash": "6676b1d1f808"
+    },
+    {
+      "slug": "scope-environments",
+      "tests_hash": "36fa4f35a447"
+    },
+    {
+      "slug": "blocks",
+      "tests_hash": "f8f9695e12b0"
+    },
+    {
+      "slug": "if-else",
+      "tests_hash": "fea6a805e1d6"
+    },
+    {
+      "slug": "while-for",
+      "tests_hash": "f7e44873f962"
+    },
+    {
+      "slug": "logical-ops",
+      "tests_hash": "4dcc5decc261"
+    },
+    {
+      "slug": "functions",
+      "tests_hash": "46859c153b1d"
+    },
+    {
+      "slug": "return-recursion",
+      "tests_hash": "a2e287c17582"
+    },
+    {
+      "slug": "closures",
+      "tests_hash": "a4e0aec5420d"
+    },
+    {
+      "slug": "resolving",
+      "tests_hash": "e12e0fcd2930"
+    },
+    {
+      "slug": "classes",
+      "tests_hash": "8ab484be3c51"
+    },
+    {
+      "slug": "inheritance",
+      "tests_hash": "0c98cdb46446"
+    },
+    {
+      "slug": "bytecode-chunks",
+      "tests_hash": "e4c19970baec"
+    },
+    {
+      "slug": "stack-vm",
+      "tests_hash": "484b993c7a31"
+    },
+    {
+      "slug": "vm-instructions",
+      "tests_hash": "4923b1146965"
+    },
+    {
+      "slug": "dispatch-loop",
+      "tests_hash": "06234693f910"
+    },
+    {
+      "slug": "value-types",
+      "tests_hash": "8720c580a943"
+    },
+    {
+      "slug": "compile-expressions",
+      "tests_hash": "0bb4c6b652f8"
+    },
+    {
+      "slug": "compile-statements",
+      "tests_hash": "382d37cea03f"
+    },
+    {
+      "slug": "compile-control-flow",
+      "tests_hash": "a33fe843b283"
+    },
+    {
+      "slug": "compile-functions",
+      "tests_hash": "919a4c4207ab"
+    },
+    {
+      "slug": "mark-sweep",
+      "tests_hash": "90d9c8b42069"
+    },
+    {
+      "slug": "gc-tracing",
+      "tests_hash": "e6bdb35d209a"
+    },
+    {
+      "slug": "tri-color",
+      "tests_hash": "6455b1e726a3"
+    },
+    {
+      "slug": "generational-gc",
+      "tests_hash": "bb550636c0b1"
+    },
+    {
+      "slug": "type-annotations",
+      "tests_hash": "89df320b38b5"
+    },
+    {
+      "slug": "type-checking",
+      "tests_hash": "2271f112ffbf"
+    },
+    {
+      "slug": "type-inference",
+      "tests_hash": "504ff1fb6363"
+    },
+    {
+      "slug": "generics",
+      "tests_hash": "cc64882d883d"
+    },
+    {
+      "slug": "optimization",
+      "tests_hash": "eda4014d70de"
+    }
+  ]
+}

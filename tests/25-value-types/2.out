@@ -1,0 +1,6 @@
+chunk created
+emit OP_CONSTANT 0
+emit OP_CONSTANT 1
+emit OP_ADD
+emit OP_PRINT
+emit OP_RETURN

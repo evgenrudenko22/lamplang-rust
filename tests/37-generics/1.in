@@ -1,0 +1,2 @@
+declare fun identity<T>(x: T) : T
+call identity(42)

@@ -1,0 +1,10 @@
+chunk created
+emit OP_CONSTANT 0
+emit OP_CONSTANT 1
+emit OP_ADD
+emit OP_RETURN
+== main ==
+0000    1 OP_CONSTANT         0 '1.2'
+0002    | OP_CONSTANT         1 '3.4'
+0004    | OP_ADD
+0005    | OP_RETURN

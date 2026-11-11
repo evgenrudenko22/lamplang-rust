@@ -1,0 +1,1 @@
+class A { greet() { print "A"; } } class B < A { greet() { print "B"; } } B().greet();

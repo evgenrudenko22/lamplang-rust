@@ -1,0 +1,3 @@
+function greet arity=1
+  params: name
+  body_tokens: 3

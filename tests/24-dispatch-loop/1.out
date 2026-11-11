@@ -1,0 +1,7 @@
+chunk created
+emit OP_CONSTANT 0
+emit OP_DEFINE_GLOBAL 1
+emit OP_GET_GLOBAL 2
+emit OP_PRINT
+emit OP_RETURN
+7

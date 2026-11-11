@@ -1,0 +1,2 @@
+fun greet(n) { print n; }
+greet("hi");

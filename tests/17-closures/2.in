@@ -1,0 +1,2 @@
+fun adder(n) { fun add(x) { return x + n; } return add; }
+var a5 = adder(5); print a5(3); print a5(10);

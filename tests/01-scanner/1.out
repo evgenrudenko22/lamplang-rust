@@ -1,0 +1,6 @@
+VAR var null
+IDENTIFIER x null
+EQUAL = null
+NUMBER 42 42.0
+SEMICOLON ; null
+EOF  null
