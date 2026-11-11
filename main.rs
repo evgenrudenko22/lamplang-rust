@@ -386,10 +386,14 @@ impl Parser {
 /* #endregion */
 
 fn main() {
-    let mut src = String::new();
-    io::stdin().read_to_string(&mut src).unwrap();
+    for line in io::stdin().lines() {
+        if let Ok(line) = line {
+            let tokens = lexer(line);
+            let mut parser = Parser::new(tokens);
+            println!("{}", parser.expression());
+        } else {
+            break;
+        }
+    }
 
-    let tokens = lexer(src);
-    let mut parser = Parser::new(tokens);
-    println!("{}", parser.expression());
 }
