@@ -38,8 +38,12 @@ fn main() {
                     }
                 }
             } else if bytes[i + 1] as char == '*' {
+                let start_line = line;
                 loop {
                     i += 1;
+                    if i == bytes.len() {
+                        eprintln!("[line {}] Error: Unterminated comment", start_line);
+                    }
                     if bytes[i] as char == '\n' {
                         line += 1;
                         continue;
