@@ -98,12 +98,11 @@ fn main() {
         } else if c.is_alphabetic() {
             let mut ident = String::new();
             ident.push(c);
-            i += 1;
-            let mut c = get(bytes, i);
+            let mut c = get(bytes, i + 1);
             while c.is_alphabetic() || c == '_' {
-                ident.push(c);
                 i += 1;
-                c = get(bytes, i);
+                ident.push(c);
+                c = get(bytes, i + 1);
             }
 
             if keywords.contains(&*ident) {
