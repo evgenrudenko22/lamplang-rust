@@ -324,7 +324,7 @@ impl Parser {
     fn expression(&mut self) -> Expr { self.equality() }
     fn equality(&mut self) -> Expr {
         let mut left = self.comparision();
-        while self.matches(&[TokenType::BangEqual, TokenType::Equal]) {
+        while self.matches(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let op = self.tokens[self.current-1].token_type.clone();
             let right = self.comparision();
             left = Expr::Binary(Box::new(left), op, Box::new(right));
