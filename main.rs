@@ -43,6 +43,7 @@ fn main() {
                     i += 1;
                     if i == bytes.len() {
                         eprintln!("[line {}] Error: Unterminated comment", start_line);
+                        break;
                     }
                     if bytes[i] as char == '\n' {
                         line += 1;
