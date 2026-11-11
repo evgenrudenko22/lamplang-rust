@@ -256,7 +256,7 @@ fn lexer(src: String) -> Vec<Token> {
 
 /* #region Parser */
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum Value {
     Number(f32),
     String(String),
@@ -445,6 +445,12 @@ fn evaluate(expr: Expr) -> Value {
                 TokenType::Minus => Value::Number(v1.as_num() - v2.as_num()),
                 TokenType::Star => Value::Number(v1.as_num() * v2.as_num()),
                 TokenType::Slash => Value::Number(v1.as_num() / v2.as_num()),
+                TokenType::EqualEqual => bool_value(v1 == v2),
+                TokenType::BangEqual => Value::Number(v1 != v2),
+                TokenType::Less => Value::Number(v1 < v2),
+                TokenType::LessEqual => Value::Number(v1 <= v2),
+                TokenType::Greater => Value::Number(v1 > v2),
+                TokenType::GreaterEqual => Value::Number(v1 >= v2),
                 _ => Value::Nil
             }
         }
