@@ -35,8 +35,7 @@ fn main() {
                     line += 1; i += 1; continue;
                 }
             }
-        }
-        if "!=<>".contains(c) && i + 1 < bytes.len() && bytes[i + 1] as char == '=' {
+        } else if "!=<>".contains(c) && i + 1 < bytes.len() && bytes[i + 1] as char == '=' {
             let lexeme = format!("{}{}", c, bytes[i + 1] as char);
             println!("{} {} null", match lexeme.as_str() {
                 "!=" => "BANG_EQUAL",
@@ -49,16 +48,29 @@ fn main() {
         } else if let Some(t) = singles.get(&c) {
             println!("{} {} null", t, c); i += 1; continue;
         } else if c == '"' {
+            let start = i;
             let mut string = String::new();
             loop {
                 i += 1;
                 let c = bytes[i] as char;
                 if i == bytes.len() {
-                    println!("unterminated string");
+                    eprintln!("[line {}] Error: Unterminated string", line);
                     break;
                 }
+                if c == '\\' {
+                    string.push(match bytes[i + 1] as char {
+                        'n' => '\n',
+                        'r' => '\r',
+                        't' => '\t',
+                        '\\' => '\\',
+                        '"' => '"',
+                        c => c
+                    });
+                    i += 1;
+                    continue;
+                }
                 if c == '"' {
-                    println!("STRING {} {}", format!("\"{}\"", string), string);
+                    println!("STRING {} {}", String::from_utf8(bytes[start..i + 1].to_vec()).unwrap(), string);
                     break;
                 }
                 string.push(c);
@@ -99,6 +111,8 @@ fn main() {
             } else {
                 println!("IDENTIFIER {} null", ident);
             }
+        } else {
+            eprintln!("[line {}] Error: Unexpected character: {}", line, c);
         }
         i += 1;
     }
