@@ -28,11 +28,26 @@ fn main() {
         let c = bytes[i] as char;
         if c == '\n' { line += 1; i += 1; continue; }
         if c == ' ' || c == '\r' || c == '\t' { i += 1; continue; }
-        if c == '/' && i + 1 < bytes.len() && bytes[i + 1] as char == '/' {
-            loop {
-                i += 1;
-                if bytes[i] as char == '\n' {
-                    line += 1; i += 1; continue;
+        if c == '/' && i + 1 < bytes.len() {
+            if bytes[i + 1] as char == '/' {
+                loop {
+                    //println!("{}", bytes[i] as char);
+                    i += 1;
+                    if bytes[i] as char == '\n' {
+                        line += 1; break;
+                    }
+                }
+            } else if bytes[i + 1] as char == '*' {
+                loop {
+                    i += 1;
+                    if bytes[i] as char == '\n' {
+                        line += 1;
+                        continue;
+                    }
+                    if bytes[i] as char == '*' && i + 1 < bytes.len() && bytes[i + 1] as char == '/' {
+                        i += 2;
+                        break;
+                    }
                 }
             }
         } else if "!=<>".contains(c) && i + 1 < bytes.len() && bytes[i + 1] as char == '=' {
@@ -69,6 +84,9 @@ fn main() {
                     i += 1;
                     continue;
                 }
+                if c == '\n' {
+                    line += 1;
+                }
                 if c == '"' {
                     println!("STRING {} {}", String::from_utf8(bytes[start..i + 1].to_vec()).unwrap(), string);
                     break;
@@ -85,6 +103,7 @@ fn main() {
                 c = get(bytes, i + 1);
             }
             if c == '.' {
+                i += 1;
                 num.push(c);
                 c = get(bytes, i + 1);
                 while c.is_digit(10u32) {
