@@ -450,7 +450,7 @@ fn evaluate(expr: Expr) -> Value {
                 TokenType::Less => bool_value(v1.as_num() < v2.as_num()),
                 TokenType::LessEqual => bool_value(v1.as_num() <= v2.as_num()),
                 TokenType::Greater => bool_value(v1.as_num() > v2.as_num()),
-                TokenType::GreaterEqual => bool_value(v.as_num()1 >= v2.as_num()),
+                TokenType::GreaterEqual => bool_value(v1.as_num() >= v2.as_num()),
                 _ => Value::Nil
             }
         }
