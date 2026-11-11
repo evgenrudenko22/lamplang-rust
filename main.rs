@@ -1,5 +1,111 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::{self, Read};
+
+/* #region Lexer */
+
+#[derive(Clone, Copy, PartialEq)]
+enum TokenType {
+    And, Class, Else, False,
+    For, Fun, If, Nil, Or,
+    Print, Return, Super, This,
+    True, Var, While,
+    LeftParen, RightParen,
+    LeftBrace, RightBrace,
+    Comma, Dot, Minus, Plus,
+    Semicolon, Star, Slash, 
+    Bang, Equal, Less, Greater, 
+    BangEqual, EqualEqual,
+    LessEqual, GreaterEqual,
+    Number, String, Identifier,
+    Eof,
+}
+
+impl TokenType {
+    fn to_string(&self) -> String {
+        match self {
+            Self::And => "and",
+            Self::Class => "class",
+            Self::Else => "else",
+            Self::False => "false",
+            Self::For => "for",
+            Self::Fun => "fun",
+            Self::If => "if",
+            Self::Nil => "nil",
+            Self::Or => "or",
+            Self::Print => "print",
+            Self::Return => "return",
+            Self::Super => "super",
+            Self::This => "this",
+            Self::True => "true",
+            Self::Var => "var",
+            Self::While => "while",
+            Self::LeftParen => "(",
+            Self::RightParen => ")",
+            Self::LeftBrace => "{",
+            Self::RightBrace => "}",
+            Self::Comma => ",",
+            Self::Dot => ".",
+            Self::Minus => "-",
+            Self::Plus => "+",
+            Self::Semicolon => ";",
+            Self::Star => "*",
+            Self::Slash => "/",
+            Self::Bang => "!",
+            Self::Equal => "=",
+            Self::Less => "<",
+            Self::Greater => ">",
+            Self::BangEqual => "!=",
+            Self::EqualEqual => "==",
+            Self::LessEqual => "<=",
+            Self::GreaterEqual => ">=",
+            Self::Number => "NUMBER",
+            Self::String => "STRING",
+            Self::Identifier => "IDENTIFIER",
+            Self::Eof => "EOF",
+        }
+        .to_owned()
+    }
+}
+
+#[derive(Clone)]
+enum LiteralValue {
+    Null,
+    Number(f32),
+    String(String),
+    Identifier(String),
+}
+
+impl LiteralValue {
+    fn as_str(&self) -> String {
+        match self {
+            Self::String(s) => s.clone(),
+            _ => String::new()
+        }
+    }
+
+    fn as_num(&self) -> f32 {
+        match self {
+            Self::Number(n) => *n,
+            _ => 0f32
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Token {
+    token_type: TokenType,
+    lexeme: String,
+    value: LiteralValue,
+}
+
+macro_rules! token {
+    ($token_type: expr, $lexeme: expr, $value: expr, $tokens: ident) => {
+        $tokens.push(Token { token_type: $token_type, lexeme: $lexeme, value: $value });
+    };
+    ($token_type: expr, $lexeme: expr, $tokens: ident) => {
+        token!($token_type, $lexeme, LiteralValue::Null, $tokens);
+    };
+}
 
 fn get(bytes: &[u8], i: usize) -> char {
     if i >= bytes.len() {
@@ -8,22 +114,25 @@ fn get(bytes: &[u8], i: usize) -> char {
     bytes[i] as char
 }
 
-fn main() {
-    let mut src = String::new();
-    io::stdin().read_to_string(&mut src).unwrap();
-
-    let keywords: HashSet<&str> = ["and","class","else","false","for","fun","if","nil",
-        "or","print","return","super","this","true","var","while"].iter().copied().collect();
-    let singles: HashMap<char, &str> = [
-        ('(', "LEFT_PAREN"), (')', "RIGHT_PAREN"), ('{', "LEFT_BRACE"), ('}', "RIGHT_BRACE"),
-        (',', "COMMA"), ('.', "DOT"), ('-', "MINUS"), ('+', "PLUS"),
-        (';', "SEMICOLON"), ('*', "STAR"), ('/', "SLASH"),
-        ('!', "BANG"), ('=', "EQUAL"), ('<', "LESS"),  ('>', "GREATER"),
+fn lexer(src: String) -> Vec<Token> {
+    use TokenType as Type;
+    let keywords: HashMap<&str, TokenType> = [
+        ("and", Type::And), ("class", Type::Class), ("else", Type::Else), ("false", Type::False),
+        ("for", Type::For), ("fun", Type::Fun), ("if", Type::If), ("nil", Type::Nil),
+        ("or", Type::Or), ("print", Type::Print), ("return", Type::Return), ("super", Type::Super),
+        ("this", Type::This), ("true", Type::True), ("var", Type::Var), ("while", Type::While),
+    ].iter().copied().collect();
+    let singles: HashMap<char, TokenType> = [
+        ('(', Type::LeftParen), (')', Type::RightParen), ('{', Type::LeftBrace), ('}', Type::RightBrace),
+        (',', Type::Comma), ('.', Type::Dot), ('-', Type::Minus), ('+', Type::Plus),
+        (';', Type::Semicolon), ('*', Type::Star), ('/', Type::Slash),
+        ('!', Type::Bang), ('=', Type::Equal), ('<', Type::Less),  ('>', Type::Greater),
     ].iter().copied().collect();
 
     let bytes = src.as_bytes();
     let mut i = 0usize;
     let mut line = 1;
+    let mut tokens: Vec<Token> = vec![];
     while i < bytes.len() {
         let c = bytes[i] as char;
         if c == '\n' { line += 1; i += 1; continue; }
@@ -57,16 +166,16 @@ fn main() {
             }
         } else if "!=<>".contains(c) && i + 1 < bytes.len() && bytes[i + 1] as char == '=' {
             let lexeme = format!("{}{}", c, bytes[i + 1] as char);
-            println!("{} {} null", match lexeme.as_str() {
-                "!=" => "BANG_EQUAL",
-                "==" => "EQUAL_EQUAL",
-                "<=" => "LESS_EQUAL",
-                ">=" => "GREATER_EQUAL",
-                _ => "",
-            }, lexeme); 
+            token!(match lexeme.as_str() {
+                "!=" => Type::BangEqual,
+                "==" => Type::EqualEqual,
+                "<=" => Type::LessEqual,
+                ">=" => Type::GreaterEqual,
+                _ => unreachable!(),
+            }, lexeme, tokens); 
             i += 2; continue;
         } else if let Some(t) = singles.get(&c) {
-            println!("{} {} null", t, c); i += 1; continue;
+            token!(t.clone(), c.to_string(), tokens); i += 1; continue;
         } else if c == '"' {
             let start = i;
             let mut string = String::new();
@@ -93,7 +202,7 @@ fn main() {
                     line += 1;
                 }
                 if c == '"' {
-                    println!("STRING {} {}", String::from_utf8(bytes[start..i + 1].to_vec()).unwrap(), string);
+                    token!(Type::String, String::from_utf8(bytes[start..i + 1].to_vec()).unwrap(), LiteralValue::String(string), tokens);
                     break;
                 }
                 string.push(c);
@@ -118,7 +227,7 @@ fn main() {
                 }
             }
 
-            println!("NUMBER {} {:?}", num, num.parse::<f32>().unwrap());
+            token!(Type::Number, num.clone(), LiteralValue::Number(num.parse::<f32>().unwrap()), tokens);
         } else if c.is_alphabetic() {
             let mut ident = String::new();
             ident.push(c);
@@ -129,16 +238,158 @@ fn main() {
                 c = get(bytes, i + 1);
             }
 
-            if keywords.contains(&*ident) {
-                println!("{} {} null", ident.to_uppercase(), ident);
+            if let Some(token_type) = keywords.get(ident.as_str()) {
+                token!(*token_type, ident, tokens);
             } else {
-                println!("IDENTIFIER {} null", ident);
+                token!(Type::Identifier, ident.clone(), LiteralValue::Identifier(ident), tokens);
             }
         } else {
             eprintln!("[line {}] Error: Unexpected character: {}", line, c);
         }
         i += 1;
     }
-    println!("EOF  null");
-    let _ = line;
+    token!(Type::Eof, String::new(), tokens);
+    tokens
+}
+
+/* #endregion */
+
+/* #region Parser */
+
+#[derive(Clone)]
+enum Value {
+    Number(f32),
+    String(String),
+    True,
+    False,
+    Nil,
+}
+
+#[derive(Clone)]
+enum Expr {
+    Lit(Value),
+    Unary(TokenType, Box<Expr>),
+    Binary(Box<Expr>, TokenType, Box<Expr>),
+    Group(Box<Expr>),
+}
+
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Lit(v) => {
+                use Value::*;
+                match v {
+                    Number(v) => write!(f, "{:?}", v),
+                    String(v) => write!(f, "{}", v),
+                    True => write!(f, "true"),
+                    False => write!(f, "false"),
+                    Nil => write!(f, "nil")
+                }
+            }
+            Self::Unary(t, expr) => {
+                write!(f, "({} {})", t.to_string(), *expr)
+            }
+            Self::Binary(expr1, t, expr2) => {
+                write!(f, "({} {} {})", t.to_string(), *expr1, *expr2)
+            }
+            Self::Group(expr) => {
+                write!(f, "(group {})", *expr)
+            }
+        }
+    }
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    current: usize,
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Self {
+            tokens,
+            current: 0,
+        }
+    }
+
+    fn check(&self, t: TokenType) -> bool { self.tokens[self.current].token_type == t }
+    fn advance(&mut self) -> Token { let t = self.tokens[self.current].clone(); self.current += 1; t }
+    fn matches(&mut self, ts: &[TokenType]) -> bool {
+        for t in ts {
+            if self.check(*t) { self.advance(); return true; }
+        }
+        false
+    }
+
+    fn expression(&mut self) -> Expr { self.equality() }
+    fn equality(&mut self) -> Expr {
+        let mut left = self.comparision();
+        while self.matches(&[TokenType::BangEqual, TokenType::Equal]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.comparision();
+            left = Expr::Binary(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
+    fn comparision(&mut self) -> Expr {
+        let mut left = self.term();
+        while self.matches(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.term();
+            left = Expr::Binary(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
+    fn term(&mut self) -> Expr {
+        let mut left = self.factor();
+        while self.matches(&[TokenType::Plus, TokenType::Minus]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.factor();
+            left = Expr::Binary(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
+    fn factor(&mut self) -> Expr {
+        let mut left = self.unary();
+        while self.matches(&[TokenType::Star, TokenType::Slash]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.unary();
+            left = Expr::Binary(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
+    fn unary(&mut self) -> Expr {
+        if self.matches(&[TokenType::Bang, TokenType::Minus]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            return Expr::Unary(op, Box::new(self.unary()));
+        }
+        self.primary()
+    }
+    fn primary(&mut self) -> Expr {
+        let t = self.advance();
+        match t.token_type {
+            TokenType::Number => Expr::Lit(Value::Number(t.value.as_num())),
+            TokenType::String => Expr::Lit(Value::String(t.value.as_str())),
+            TokenType::True => Expr::Lit(Value::True),
+            TokenType::False => Expr::Lit(Value::False),
+            TokenType::Nil => Expr::Lit(Value::Nil),
+            TokenType::LeftParen => {
+                let g = Expr::Group(Box::new(self.expression()));
+                self.advance();
+                g
+            }
+            _ => panic!("Expect expression")
+        }
+    }
+}
+
+/* #endregion */
+
+fn main() {
+    let mut src = String::new();
+    io::stdin().read_to_string(&mut src).unwrap();
+
+    let tokens = lexer(src);
+    let mut parser = Parser::new(tokens);
+    println!("{}", parser.expression());
 }
