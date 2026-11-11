@@ -446,11 +446,11 @@ fn evaluate(expr: Expr) -> Value {
                 TokenType::Star => Value::Number(v1.as_num() * v2.as_num()),
                 TokenType::Slash => Value::Number(v1.as_num() / v2.as_num()),
                 TokenType::EqualEqual => bool_value(v1 == v2),
-                TokenType::BangEqual => Value::Number(v1 != v2),
-                TokenType::Less => Value::Number(v1 < v2),
-                TokenType::LessEqual => Value::Number(v1 <= v2),
-                TokenType::Greater => Value::Number(v1 > v2),
-                TokenType::GreaterEqual => Value::Number(v1 >= v2),
+                TokenType::BangEqual => bool_value(v1 != v2),
+                TokenType::Less => bool_value(v1.as_num() < v2.as_num()),
+                TokenType::LessEqual => bool_value(v1.as_num() <= v2.as_num()),
+                TokenType::Greater => bool_value(v1.as_num() > v2.as_num()),
+                TokenType::GreaterEqual => bool_value(v.as_num()1 >= v2.as_num()),
                 _ => Value::Nil
             }
         }
