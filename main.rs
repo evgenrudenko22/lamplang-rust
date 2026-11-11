@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Read};
+use std::io;
 
 /* #region Lexer */
 
@@ -265,6 +265,38 @@ enum Value {
     Nil,
 }
 
+impl Value {
+    fn as_num(&self) -> f32 {
+        match self {
+            Value::Number(v) => *v,
+            _ => panic!()
+        }
+    }
+    
+    fn is_falsy(&self) -> bool {
+        use Value::*;
+        match self {
+            Number(v) => *v == 0.0,
+            String(v) => v.is_empty(),
+            True => false,
+            False => true,
+            Nil => true
+        }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(v) => write!(f, "{}", v),
+            Self::String(v) => write!(f, "{}", v),
+            Self::True => write!(f, "true"),
+            Self::False => write!(f, "false"),
+            Self::Nil => write!(f, "nil"),
+        }
+    }
+}
+
 #[derive(Clone)]
 enum Expr {
     Lit(Value),
@@ -276,16 +308,7 @@ enum Expr {
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Lit(v) => {
-                use Value::*;
-                match v {
-                    Number(v) => write!(f, "{:?}", v),
-                    String(v) => write!(f, "{}", v),
-                    True => write!(f, "true"),
-                    False => write!(f, "false"),
-                    Nil => write!(f, "nil")
-                }
-            }
+            Self::Lit(v) => write!(f, "{}", v),
             Self::Unary(t, expr) => {
                 write!(f, "({} {})", t.to_string(), *expr)
             }
@@ -385,12 +408,58 @@ impl Parser {
 
 /* #endregion */
 
+/* #region Interpreter */
+
+fn bool_value(b: bool) -> Value {
+    if b { Value::True } else { Value::False }
+}
+
+fn evaluate(expr: Expr) -> Value {
+    use Expr::*;
+    match expr {
+        Lit(v) => v,
+        Unary(t, expr) => {
+            let v = evaluate(*expr);
+            match t {
+                TokenType::Minus => Value::Number(-v.as_num()),
+                TokenType::Bang => bool_value(v.is_falsy()), 
+                _ => Value::Nil,
+            }
+        }
+        Binary(expr1, t, expr2) => {
+            let v1 = evaluate(*expr1);
+            let v2 = evaluate(*expr2);
+            match t {
+                TokenType::Plus => {
+                    if let Value::Number(n1) = v1 {
+                        if let Value::Number(n2) = v2 {
+                            return Value::Number(n1 + n2);
+                        }
+                    } else if let Value::String(s1) = v1 {
+                        if let Value::String(s2) = v2 {
+                            return Value::String(format!("{}{}", s1, s2));
+                        }
+                    }
+                    panic!()
+                },
+                TokenType::Minus => Value::Number(v1.as_num() - v2.as_num()),
+                TokenType::Star => Value::Number(v1.as_num() * v2.as_num()),
+                TokenType::Slash => Value::Number(v1.as_num() / v2.as_num()),
+                _ => Value::Nil
+            }
+        }
+        Group(expr) => evaluate(*expr)
+    }
+}
+
+/* #endregion */
+
 fn main() {
     for line in io::stdin().lines() {
         if let Ok(line) = line {
             let tokens = lexer(line);
             let mut parser = Parser::new(tokens);
-            println!("{}", parser.expression());
+            println!("{}", evaluate(parser.expression()));
         } else {
             break;
         }
