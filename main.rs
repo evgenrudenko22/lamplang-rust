@@ -327,12 +327,14 @@ enum Expr {
 }
  */
 
+#[derive(Clone)]
 enum Stmt {
     Expr(Expr),
     Print(Expr),
     Var(String, Option<Expr>),
     Block(Vec<Stmt>),
-    If(Vec<(Expr, Stmt)>, Option<Box<Stmt>>)
+    If(Vec<(Expr, Stmt)>, Option<Box<Stmt>>),
+    While(Expr, Box<Stmt>)
 }
 
 struct Parser {
@@ -389,11 +391,61 @@ impl Parser {
             self.print_statement()
         } else if self.matches(&[TokenType::If]) {
             self.if_statement()
+        } else if self.matches(&[TokenType::While]) {
+            self.while_statement()
+        } else if self.matches(&[TokenType::For]) {
+            self.for_statement()
         } else if self.matches(&[TokenType::LeftBrace]) {
             self.block()
         } else {
             self.expression_statement()
         }
+    }
+
+    fn while_statement(&mut self) -> Stmt {
+        let cond = self.expression();
+        let body = self.statement();
+        Stmt::While(cond, Box::new(body))
+    }
+
+    fn for_statement(&mut self) -> Stmt {
+        let mut init = None;
+        if self.matches(&[TokenType::Semicolon]) {
+        } else if self.matches(&[TokenType::Var]) {
+            init = Some(self.var_decl());
+        } else {
+            init = Some(self.expression_statement());
+        }
+
+        let cond: Expr;
+        if self.matches(&[TokenType::Semicolon]) {
+            cond = Expr::Lit(Value::True);
+        } else {
+            cond = self.expression();
+        }
+
+        let incr: Expr;
+        if self.matches(&[TokenType::Semicolon]) {
+            incr = Expr::Lit(Value::Nil);
+        } else {
+            incr = self.expression();
+        }
+
+        let body = Stmt::While(
+            cond,
+            Box::new(Stmt::Block(vec![
+                self.statement(), Stmt::Expr(incr)
+            ])),
+        );
+
+        let block: Vec<Stmt>;
+        if let Some(init) = init {
+            block = vec![init, body];
+        } else {
+            block = vec![body]
+        }
+
+        Stmt::Block(block)
     }
 
     fn if_statement(&mut self) -> Stmt{
@@ -631,6 +683,13 @@ fn interpret(stmts: Vec<Stmt>, env: MutEnviroment) {
                 }
                 if let Some(else_) = else_ {
                     interpret(vec![*else_], Enviroment::enclose(env.clone()));
+                }
+            }
+            While(expr, body) => {
+                while !evaluate(expr.clone(), env.clone()).is_falsy() {
+                    if let Block(ref body) = *body {
+                        interpret(body.clone(), Enviroment::enclose(env.clone()));
+                    }
                 }
             }
         }
