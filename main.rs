@@ -307,6 +307,7 @@ enum Expr {
     Group(Box<Expr>),
     Assign(String, Box<Expr>),
     Variable(String),
+    Logical(Box<Expr>, TokenType, Box<Expr>)
 }
 
 /* impl std::fmt::Display for Expr {
@@ -409,7 +410,6 @@ impl Parser {
     }
 
     fn for_statement(&mut self) -> Stmt {
-        self.consume(TokenType::LeftParen, "Expect '(' before initializer.");
         let mut init = None;
         if self.matches(&[TokenType::Semicolon]) {
         } else if self.matches(&[TokenType::Var]) {
@@ -432,7 +432,6 @@ impl Parser {
         } else {
             incr = self.expression();
         }
-        self.consume(TokenType::RightParen, "Expect ')' after increment.");
 
         let body = Stmt::While(
             cond,
@@ -487,7 +486,25 @@ impl Parser {
         Stmt::Expr(value)
     }
 
-    fn expression(&mut self) -> Expr { self.equality() }
+    fn expression(&mut self) -> Expr { self.and() }
+    fn and(&mut self) -> Expr {
+        let mut left = self.or();
+        while self.matches(&[TokenType::And]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.or();
+            left = Expr::Logical(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
+    fn or(&mut self) -> Expr {
+        let mut left = self.equality();
+        while self.matches(&[TokenType::Or]) {
+            let op = self.tokens[self.current-1].token_type.clone();
+            let right = self.equality();
+            left = Expr::Logical(Box::new(left), op, Box::new(right));
+        }
+        left
+    }
     fn equality(&mut self) -> Expr {
         let mut left = self.comparision();
         while self.matches(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -661,6 +678,23 @@ fn evaluate(expr: Expr, env: MutEnviroment) -> Value {
             let v = evaluate(*expr, env.clone());
             env.borrow_mut().assign(name, v.clone());
             v
+        }
+        Logical(expr1, t, expr2) => {
+            let left = evaluate(*expr1, env.clone());
+            match t {
+                TokenType::Or => {
+                    if !left.is_falsy() {
+                        return left;
+                    }
+                },
+                TokenType::And => {
+                    if left.is_falsy() {
+                        return left;
+                    }
+                },
+                _ => unreachable!(),
+            }
+            evaluate(*expr2, env.clone())
         }
     }
 }
