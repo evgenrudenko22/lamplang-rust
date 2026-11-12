@@ -398,17 +398,15 @@ impl Parser {
 
     fn if_statement(&mut self) -> Stmt{
         let cond = self.expression();
-        self.consume(TokenType::LeftBrace, "Expect '{' after condition.");
-        let mut branches = vec![(cond, self.block())];
+        let mut branches = vec![(cond, self.statement())];
         let mut else_ = None;
         while self.matches(&[TokenType::Else]) {
             if self.matches(&[TokenType::If]) {
                 let cond = self.expression();
-                self.consume(TokenType::LeftBrace, "Expect '{' after condition.");
-                branches.push((cond, self.block()));
+                branches.push((cond, self.statement()));
                 continue;
             }
-            else_ = Some(Box::new(self.block()));
+            else_ = Some(Box::new(self.statement()));
         }
         Stmt::If(branches, else_)
     }
@@ -628,15 +626,11 @@ fn interpret(stmts: Vec<Stmt>, env: MutEnviroment) {
             If(branches, else_) => {
                 for (condition, branch) in branches {
                     if evaluate(condition, env.clone()).is_falsy() { continue; }
-                    if let Block(b) = branch {
-                        interpret(b, Enviroment::enclose(env.clone()));
-                        continue 'main;
-                    }
+                    interpret(vec![branch], Enviroment::enclose(env.clone()));
+                    continue 'main;
                 }
                 if let Some(else_) = else_ {
-                    if let Block(else_) = *else_ {
-                        interpret(else_, Enviroment::enclose(env.clone()));
-                    }
+                    interpret(vec![*else_], Enviroment::enclose(env.clone()));
                 }
             }
         }
