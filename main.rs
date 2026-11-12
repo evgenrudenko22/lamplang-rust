@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::io::{self, Read};
 use std::process::exit;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 /* #region Lexer */
 
@@ -328,7 +330,8 @@ enum Expr {
 enum Stmt {
     Expr(Expr),
     Print(Expr),
-    Var(String, Option<Expr>)
+    Var(String, Option<Expr>),
+    Block(Vec<Stmt>),
 }
 
 struct Parser {
@@ -383,9 +386,20 @@ impl Parser {
     fn statement(&mut self) -> Stmt {
         if self.matches(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.matches(&[TokenType::LeftBrace]) {
+            self.block()
         } else {
             self.expression_statement()
         }
+    }
+
+    fn block(&mut self) -> Stmt {
+        let mut stmts = vec![];
+        while !self.check(TokenType::RightBrace) {
+            stmts.push(self.declaration());
+        }
+        self.advance();
+        Stmt::Block(stmts)
     }
 
     fn print_statement(&mut self) -> Stmt {
@@ -474,13 +488,27 @@ impl Parser {
 
 /* #region Interpreter */
 
+type MutEnviroment = Rc<RefCell<Enviroment>>;
+
+#[derive(Clone)]
 struct Enviroment {
     values: HashMap<String, Value>,
+    enclosing: Option<Rc<RefCell<Enviroment>>>,
 }
 
 impl Enviroment {
     fn new() -> Self {
-        Self { values: HashMap::new() }
+        Self { 
+            values: HashMap::new(), 
+            enclosing: None 
+        }
+    }
+
+    fn enclose(env: MutEnviroment) -> MutEnviroment {
+        Rc::new(RefCell::new(Self { 
+            values: HashMap::new(), 
+            enclosing: Some(env),
+        }))
     }
 
     fn define(&mut self, name: String, value: Value) {
@@ -488,14 +516,24 @@ impl Enviroment {
     }
 
     fn get(&self, name: String) -> Value {
-        self.values.get(&name).unwrap().clone()
+        if self.values.contains_key(&name) {
+            self.values.get(&name).unwrap().clone()
+        } else if let Some(enclosing) = &self.enclosing {
+            enclosing.borrow_mut().get(name)
+        } else {
+            eprintln!("Undefined varialbe '{}'.", name);
+            exit(1)
+        }
     }
 
     fn assign(&mut self, name: String, value: Value) {
         if self.values.contains_key(&name) {
             self.values.insert(name, value);
+        } else if let Some(enclosing) = &self.enclosing {
+            enclosing.borrow_mut().assign(name, value)
         } else {
             eprintln!("Undefined varialbe '{}'.", name);
+            exit(1)
         }
     }
 }
@@ -504,7 +542,7 @@ fn bool_value(b: bool) -> Value {
     if b { Value::True } else { Value::False }
 }
 
-fn evaluate(expr: Expr, env: &mut Enviroment) -> Value {
+fn evaluate(expr: Expr, env: MutEnviroment) -> Value {
     use Expr::*;
     match expr {
         Lit(v) => v,
@@ -517,7 +555,7 @@ fn evaluate(expr: Expr, env: &mut Enviroment) -> Value {
             }
         }
         Binary(expr1, t, expr2) => {
-            let v1 = evaluate(*expr1, env);
+            let v1 = evaluate(*expr1, env.clone());
             let v2 = evaluate(*expr2, env);
             match t {
                 TokenType::Plus => {
@@ -545,24 +583,27 @@ fn evaluate(expr: Expr, env: &mut Enviroment) -> Value {
             }
         }
         Group(expr) => evaluate(*expr, env),
-        Variable(name) => env.get(name),
+        Variable(name) => env.borrow().get(name),
         Assign(name, expr) => {
-            let v = evaluate(*expr, env);
-            env.assign(name, v.clone());
+            let v = evaluate(*expr, env.clone());
+            env.borrow_mut().assign(name, v.clone());
             v
         }
     }
 }
 
-fn interpret(stmts: Vec<Stmt>, env: &mut Enviroment) {
+fn interpret(stmts: Vec<Stmt>, env: MutEnviroment) {
     use Stmt::*;
     for stmt in stmts {
         match stmt {
-            Print(expr) => println!("{}", evaluate(expr, env)),
-            Expr(expr) => { evaluate(expr, env); },
+            Print(expr) => println!("{}", evaluate(expr, env.clone())),
+            Expr(expr) => { evaluate(expr, env.clone()); },
             Var(name, expr) => {
-                let v = if expr.is_none() { Value::Nil } else { evaluate(expr.unwrap(), env) };
-                env.define(name, v);
+                let v = if expr.is_none() { Value::Nil } else { evaluate(expr.unwrap(), env.clone()) };
+                env.borrow_mut().define(name, v);
+            },
+            Block(b) => {
+                interpret(b, Enviroment::enclose(env.clone()));
             }
         }
     }
@@ -576,5 +617,5 @@ fn main() {
 
     let tokens = lexer(src);
     let mut parser = Parser::new(tokens);
-    interpret(parser.parse(), &mut Enviroment::new())
+    interpret(parser.parse(), Rc::new(RefCell::new(Enviroment::new())))
 }
