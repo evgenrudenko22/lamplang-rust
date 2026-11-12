@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io;
+use std::io::{self, Read};
 
 /* #region Lexer */
 
@@ -322,6 +322,11 @@ impl std::fmt::Display for Expr {
     }
 }
 
+enum Stmt {
+    Expr(Expr),
+    Print(Expr),
+}
+
 struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -336,12 +341,41 @@ impl Parser {
     }
 
     fn check(&self, t: TokenType) -> bool { self.tokens[self.current].token_type == t }
+    fn consume(&mut self, t: TokenType, message: &str ) { if !self.check(t) { eprintln!("Error: {}", message); } else { self.advance(); } }
     fn advance(&mut self) -> Token { let t = self.tokens[self.current].clone(); self.current += 1; t }
     fn matches(&mut self, ts: &[TokenType]) -> bool {
         for t in ts {
             if self.check(*t) { self.advance(); return true; }
         }
         false
+    }
+
+    fn parse(&mut self) -> Vec<Stmt> {
+        let mut stmts = vec![];
+        while !self.check(TokenType::Eof) {
+            stmts.push(self.statement());
+        }
+        stmts
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.matches(&[TokenType::Print]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        Stmt::Print(value)
+    }
+
+    fn expression_statement(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        Stmt::Expr(value)
     }
 
     fn expression(&mut self) -> Expr { self.equality() }
@@ -401,7 +435,7 @@ impl Parser {
                 self.advance();
                 g
             }
-            _ => panic!("Expect expression")
+            t => {eprintln!("Error: Expect expression, got {}", t.to_string()); panic!()}
         }
     }
 }
@@ -458,17 +492,23 @@ fn evaluate(expr: Expr) -> Value {
     }
 }
 
+fn interpret(stmts: Vec<Stmt>) {
+    use Stmt::*;
+    for stmt in stmts {
+        match stmt {
+            Print(expr) => println!("{}", evaluate(expr)),
+            Expr(expr) => { evaluate(expr); },
+        }
+    }
+}
+
 /* #endregion */
 
 fn main() {
-    for line in io::stdin().lines() {
-        if let Ok(line) = line {
-            let tokens = lexer(line);
-            let mut parser = Parser::new(tokens);
-            println!("{}", evaluate(parser.expression()));
-        } else {
-            break;
-        }
-    }
+    let mut src = String::new();
+    io::stdin().read_to_string(&mut src).unwrap();
 
+    let tokens = lexer(src);
+    let mut parser = Parser::new(tokens);
+    interpret(parser.parse())
 }
