@@ -395,10 +395,10 @@ impl Parser {
 
     fn block(&mut self) -> Stmt {
         let mut stmts = vec![];
-        while !self.check(TokenType::RightBrace) {
+        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
             stmts.push(self.declaration());
         }
-        self.advance();
+        self.consume(TokenType::RightBrace, "Expect '}' after block.");
         Stmt::Block(stmts)
     }
 
