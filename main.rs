@@ -409,6 +409,7 @@ impl Parser {
     }
 
     fn for_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expect '(' before initializer.");
         let mut init = None;
         if self.matches(&[TokenType::Semicolon]) {
         } else if self.matches(&[TokenType::Var]) {
@@ -430,6 +431,7 @@ impl Parser {
         } else {
             incr = self.expression();
         }
+        self.consume(TokenType::LeftParen, "Expect ')' after increment.");
 
         let body = Stmt::While(
             cond,
