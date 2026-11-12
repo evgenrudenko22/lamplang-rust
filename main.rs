@@ -303,6 +303,8 @@ enum Expr {
     Unary(TokenType, Box<Expr>),
     Binary(Box<Expr>, TokenType, Box<Expr>),
     Group(Box<Expr>),
+    Assign(String, Box<Expr>),
+    Variable(String),
 }
 
 impl std::fmt::Display for Expr {
@@ -325,6 +327,7 @@ impl std::fmt::Display for Expr {
 enum Stmt {
     Expr(Expr),
     Print(Expr),
+    Var(String, Option<Expr>)
 }
 
 struct Parser {
@@ -353,9 +356,17 @@ impl Parser {
     fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts = vec![];
         while !self.check(TokenType::Eof) {
-            stmts.push(self.statement());
+            stmts.push(self.declaration());
         }
         stmts
+    }
+
+    fn declaration(&mut self) -> Stmt{
+        if self.matches(&[TokenType::Var]) {
+            self.var_decl()
+        } else {
+            self.statement()
+        }
     }
 
     fn statement(&mut self) -> Stmt {
@@ -443,6 +454,30 @@ impl Parser {
 /* #endregion */
 
 /* #region Interpreter */
+
+struct Enviroment {
+    values: HashMap<String, Value>,
+}
+
+impl Enviroment {
+    fn new() -> Self {
+        Self { values: HashMap::new() }
+    }
+
+    fn define(&mut self, name: String, value: Value) {
+        self.values.put(name, value);
+    }
+
+    fn get(&self, name: String) -> Value {
+        self.values.get(name).unwrap().clone()
+    }
+
+    fn assign(&mut self, name: String, value: Value) {
+        if self.values.contains(name) {
+            self.values.put(name, value);
+        }
+    }
+}
 
 fn bool_value(b: bool) -> Value {
     if b { Value::True } else { Value::False }
