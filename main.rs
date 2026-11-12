@@ -332,6 +332,7 @@ enum Stmt {
     Print(Expr),
     Var(String, Option<Expr>),
     Block(Vec<Stmt>),
+    If(Vec<(Expr, Stmt)>, Option<Box<Stmt>>)
 }
 
 struct Parser {
@@ -386,11 +387,30 @@ impl Parser {
     fn statement(&mut self) -> Stmt {
         if self.matches(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.matches(&[TokenType::If]) {
+            self.if_statement()
         } else if self.matches(&[TokenType::LeftBrace]) {
             self.block()
         } else {
             self.expression_statement()
         }
+    }
+
+    fn if_statement(&mut self) -> Stmt{
+        let cond = self.expression();
+        self.consume(TokenType::LeftBrace, "Expect '{' after condition.");
+        let mut branches = vec![(cond, self.block())];
+        let mut else_ = None;
+        while self.matches(&[TokenType::Else]) {
+            if self.matches(&[TokenType::If]) {
+                let cond = self.expression();
+                self.consume(TokenType::LeftBrace, "Expect '{' after condition.");
+                branches.push((cond, self.block()));
+                continue;
+            }
+            else_ = Some(Box::new(self.block()));
+        }
+        Stmt::If(branches, else_)
     }
 
     fn block(&mut self) -> Stmt {
@@ -594,7 +614,7 @@ fn evaluate(expr: Expr, env: MutEnviroment) -> Value {
 
 fn interpret(stmts: Vec<Stmt>, env: MutEnviroment) {
     use Stmt::*;
-    for stmt in stmts {
+    'main: for stmt in stmts {
         match stmt {
             Print(expr) => println!("{}", evaluate(expr, env.clone())),
             Expr(expr) => { evaluate(expr, env.clone()); },
@@ -604,6 +624,20 @@ fn interpret(stmts: Vec<Stmt>, env: MutEnviroment) {
             },
             Block(b) => {
                 interpret(b, Enviroment::enclose(env.clone()));
+            }
+            If(branches, else_) => {
+                for (condition, branch) in branches {
+                    if evaluate(condition, env.clone()).is_falsy() { continue; }
+                    if let Block(b) = branch {
+                        interpret(b, Enviroment::enclose(env.clone()));
+                        continue 'main;
+                    }
+                }
+                if let Some(else_) = else_ {
+                    if let Block(else_) = *else_ {
+                        interpret(else_, Enviroment::enclose(env.clone()));
+                    }
+                }
             }
         }
     }
