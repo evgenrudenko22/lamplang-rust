@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, Read};
+use std::process::exit;
 
 /* #region Lexer */
 
@@ -72,7 +73,6 @@ enum LiteralValue {
     Null,
     Number(f32),
     String(String),
-    Identifier(String),
 }
 
 impl LiteralValue {
@@ -241,7 +241,7 @@ fn lexer(src: String) -> Vec<Token> {
             if let Some(token_type) = keywords.get(ident.as_str()) {
                 token!(*token_type, ident, tokens);
             } else {
-                token!(Type::Identifier, ident.clone(), LiteralValue::Identifier(ident), tokens);
+                token!(Type::Identifier, ident.clone(), tokens);
             }
         } else {
             eprintln!("[line {}] Error: Unexpected character: {}", line, c);
@@ -307,7 +307,7 @@ enum Expr {
     Variable(String),
 }
 
-impl std::fmt::Display for Expr {
+/* impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Lit(v) => write!(f, "{}", v),
@@ -323,6 +323,7 @@ impl std::fmt::Display for Expr {
         }
     }
 }
+ */
 
 enum Stmt {
     Expr(Expr),
@@ -344,7 +345,7 @@ impl Parser {
     }
 
     fn check(&self, t: TokenType) -> bool { self.tokens[self.current].token_type == t }
-    fn consume(&mut self, t: TokenType, message: &str ) { if !self.check(t) { eprintln!("Error: {}", message); } else { self.advance(); } }
+    fn consume(&mut self, t: TokenType, message: &str ) -> Token { if !self.check(t) { eprintln!("Error: {}", message); exit(1); } else { self.advance() } }
     fn advance(&mut self) -> Token { let t = self.tokens[self.current].clone(); self.current += 1; t }
     fn matches(&mut self, ts: &[TokenType]) -> bool {
         for t in ts {
@@ -361,12 +362,22 @@ impl Parser {
         stmts
     }
 
-    fn declaration(&mut self) -> Stmt{
+    fn declaration(&mut self) -> Stmt {
         if self.matches(&[TokenType::Var]) {
             self.var_decl()
         } else {
             self.statement()
         }
+    }
+
+    fn var_decl(&mut self) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.").lexeme;
+        let mut expr = None;
+        if self.matches(&[TokenType::Equal]) {
+            expr = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration");
+        Stmt::Var(name, expr)
     }
 
     fn statement(&mut self) -> Stmt {
@@ -446,6 +457,14 @@ impl Parser {
                 self.advance();
                 g
             }
+            TokenType::Identifier => {
+                if self.matches(&[TokenType::Equal]) {
+                    let expr = self.expression();
+                    Expr::Assign(t.lexeme, Box::new(expr))
+                } else {
+                    Expr::Variable(t.lexeme)
+                }
+            }
             t => {eprintln!("Error: Expect expression, got {}", t.to_string()); panic!()}
         }
     }
@@ -465,16 +484,18 @@ impl Enviroment {
     }
 
     fn define(&mut self, name: String, value: Value) {
-        self.values.put(name, value);
+        self.values.insert(name, value);
     }
 
     fn get(&self, name: String) -> Value {
-        self.values.get(name).unwrap().clone()
+        self.values.get(&name).unwrap().clone()
     }
 
     fn assign(&mut self, name: String, value: Value) {
-        if self.values.contains(name) {
-            self.values.put(name, value);
+        if self.values.contains_key(&name) {
+            self.values.insert(name, value);
+        } else {
+            eprintln!("Undefined varialbe '{}'.", name);
         }
     }
 }
@@ -483,12 +504,12 @@ fn bool_value(b: bool) -> Value {
     if b { Value::True } else { Value::False }
 }
 
-fn evaluate(expr: Expr) -> Value {
+fn evaluate(expr: Expr, env: &mut Enviroment) -> Value {
     use Expr::*;
     match expr {
         Lit(v) => v,
         Unary(t, expr) => {
-            let v = evaluate(*expr);
+            let v = evaluate(*expr, env);
             match t {
                 TokenType::Minus => Value::Number(-v.as_num()),
                 TokenType::Bang => bool_value(v.is_falsy()), 
@@ -496,8 +517,8 @@ fn evaluate(expr: Expr) -> Value {
             }
         }
         Binary(expr1, t, expr2) => {
-            let v1 = evaluate(*expr1);
-            let v2 = evaluate(*expr2);
+            let v1 = evaluate(*expr1, env);
+            let v2 = evaluate(*expr2, env);
             match t {
                 TokenType::Plus => {
                     if let Value::Number(n1) = v1 {
@@ -523,16 +544,26 @@ fn evaluate(expr: Expr) -> Value {
                 _ => Value::Nil
             }
         }
-        Group(expr) => evaluate(*expr)
+        Group(expr) => evaluate(*expr, env),
+        Variable(name) => env.get(name),
+        Assign(name, expr) => {
+            let v = evaluate(*expr, env);
+            env.assign(name, v.clone());
+            v
+        }
     }
 }
 
-fn interpret(stmts: Vec<Stmt>) {
+fn interpret(stmts: Vec<Stmt>, env: &mut Enviroment) {
     use Stmt::*;
     for stmt in stmts {
         match stmt {
-            Print(expr) => println!("{}", evaluate(expr)),
-            Expr(expr) => { evaluate(expr); },
+            Print(expr) => println!("{}", evaluate(expr, env)),
+            Expr(expr) => { evaluate(expr, env); },
+            Var(name, expr) => {
+                let v = if expr.is_none() { Value::Nil } else { evaluate(expr.unwrap(), env) };
+                env.define(name, v);
+            }
         }
     }
 }
@@ -545,5 +576,5 @@ fn main() {
 
     let tokens = lexer(src);
     let mut parser = Parser::new(tokens);
-    interpret(parser.parse())
+    interpret(parser.parse(), &mut Enviroment::new())
 }
