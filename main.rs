@@ -423,6 +423,7 @@ impl Parser {
             cond = Expr::Lit(Value::True);
         } else {
             cond = self.expression();
+            self.consume(TokenType::Semicolon, "Expect ';' after condition.");
         }
 
         let incr: Expr;
@@ -431,7 +432,7 @@ impl Parser {
         } else {
             incr = self.expression();
         }
-        self.consume(TokenType::LeftParen, "Expect ')' after increment.");
+        self.consume(TokenType::RightParen, "Expect ')' after increment.");
 
         let body = Stmt::While(
             cond,
