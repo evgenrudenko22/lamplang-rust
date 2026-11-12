@@ -521,8 +521,8 @@ impl Enviroment {
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow_mut().get(name)
         } else {
-            eprintln!("Undefined varialbe '{}'.", name);println!();
-            exit(1)
+            eprintln!("Undefined varialbe '{}'.", name);
+            exit(0)
         }
     }
 
@@ -533,7 +533,7 @@ impl Enviroment {
             enclosing.borrow_mut().assign(name, value)
         } else {
             eprintln!("Undefined varialbe '{}'.", name);
-            exit(1)
+            exit(0)
         }
     }
 }
